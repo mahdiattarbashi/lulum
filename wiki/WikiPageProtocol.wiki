@@ -1,4 +1,4 @@
-#labels Featured,Phase-Support,Deprecated
+#labels Featured,Phase-Design,Phase-Implementation
 #lulu messenger 协议 v2.0 不完整说明.
 
 = lulu messenger 协议 v2.0 = 
