@@ -1,0 +1,127 @@
+/*  filename: ConfigStyleWidget.h    2009/02/07  */
+/*************************************************************************
+    LuLu Messenger: A LAN Instant Messenger For Chatting and File Exchanging.
+    Copyright (C) 2008,2009  Wu Weisheng <wwssir@gmail.com>
+
+    This file is part of LuLu Messenger.
+
+    LuLu Messenger is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    LuLu Messenger is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*************************************************************************/
+/*************************************************************************
+    LuLu 信使: 局域网络即时对话与文件交换通讯工具。
+    著作权所有 (C) 2008,2009  武维生 <wwssir@gmail.com>
+
+    此文件是 LuLu 信使源文件的一部分。
+
+    LuLu 信使为自由软件；您可依据自由软件基金会所发表的GNU通用公共授权条款，
+    对本程序再次发布和/或修改；无论您依据的是本授权的第三版，或（您可选的）
+    任一日后发行的版本。
+
+    LuLu 信使是基于使用目的而加以发布，然而不负任何担保责任；亦无对适售性或
+    特定目的适用性所为的默示性担保。详情请参照GNU通用公共授权。
+
+    您应已收到附随于本程序的GNU通用公共授权的副本；如果没有，请参照
+    <http://www.gnu.org/licenses/>.
+*************************************************************************/
+
+// 说明：    
+// 修改：    
+
+#ifndef __ConfigStyleWidget_h__
+#define __ConfigStyleWidget_h__
+
+#include "defs.h"
+#include "DataAccess.h"
+
+class ConfigStyleWidget : public QDialog
+{
+        Q_OBJECT
+
+public:
+        ConfigStyleWidget(DataAccess& dacess, QWidget *parent = 0)
+                : QDialog(parent)
+                , m_DataAccess(dacess)
+        {
+                originalPalette = QApplication::palette();
+
+                styleComboBox = new QComboBox;
+                styleComboBox->setFixedWidth(150);
+                styleComboBox->addItems(QStyleFactory::keys());
+                connect(styleComboBox, SIGNAL(activated(const QString&)),
+                        this, SLOT(changeStyle(const QString&)));
+
+                useStylePaletteCheckBox = new QCheckBox(tr("&Use style's standard palette"));
+                useStylePaletteCheckBox->setChecked(m_DataAccess.UseStandardPalette());
+                connect(useStylePaletteCheckBox, SIGNAL(toggled(bool)),
+                        this, SLOT(changePalette()));
+
+                QDialogButtonBox* dbutbox = new QDialogButtonBox(QDialogButtonBox::Ok);
+                connect(dbutbox, SIGNAL(accepted()), this, SLOT(accept()));
+
+                QHBoxLayout *topLayout = new QHBoxLayout;
+                topLayout->addWidget(styleComboBox);
+                topLayout->addWidget(useStylePaletteCheckBox);
+                topLayout->addStretch();
+
+                QGroupBox* groupBox = new QGroupBox(tr("Style Configure"));
+                groupBox->setLayout(topLayout);
+
+                QVBoxLayout* vlayout = new QVBoxLayout(this);
+                vlayout->addWidget(groupBox);
+                vlayout->addWidget(dbutbox);
+
+                setWindowTitle(tr("Style Configure"));
+                int idx = styleComboBox->findText(m_DataAccess.StyleName());
+                if (idx != -1)
+                {
+                        styleComboBox->setCurrentIndex(idx);
+                } 
+
+                changeStyle(styleComboBox->currentText());
+                setWindowTitle(tr("Style Configure"));
+        }
+
+public slots:
+        void changeStyle(const QString& styleName);
+        void changePalette();
+
+private:
+        QPalette originalPalette;
+
+        QLabel *styleLabel;
+        QComboBox *styleComboBox;
+        QCheckBox *useStylePaletteCheckBox;
+
+        DataAccess& m_DataAccess;
+};
+
+inline void
+ConfigStyleWidget::changeStyle(const QString& styleName)
+{
+        QApplication::setStyle(QStyleFactory::create(styleName));
+        changePalette();
+
+        m_DataAccess.updateStyle(styleName, useStylePaletteCheckBox->isChecked());
+}
+
+inline void
+ConfigStyleWidget::changePalette()
+{
+        if (useStylePaletteCheckBox->isChecked())
+                QApplication::setPalette(QApplication::style()->standardPalette());
+        else
+                QApplication::setPalette(originalPalette);
+}
+
+#endif // __ConfigStyleWidget_h__
