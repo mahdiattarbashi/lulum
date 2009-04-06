@@ -42,6 +42,7 @@
 #include "FormMain.h"
 #include "TransProtocolData.h"
 #include "ShareWidget.h"
+#include "ScreenShot.h"
 #include "UserItem.h"
 #include "UserSelectView.h"
 #include "IconView.h"
@@ -88,9 +89,9 @@ FormTalk::FormTalk(DataAccess& dacess, UserItem* i)
 
         resize(600, 450);
         textEdit->setFocus();
-
+        textEdit->insertHtml("<b></b>");
         QTextCharFormat fmt;
-        fmt.setFontPointSize(fontSizeComboBox->currentText().toFloat());
+        fmt.setFontPointSize(12.0);
         mergeFormatOnWordOrSelection(fmt);
 
         connect(this, SIGNAL(sigMyClose()), this, SLOT(slotMyClose()));
@@ -107,85 +108,83 @@ FormTalk::~FormTalk(void)
 void
 FormTalk::createActions()
 {
-        logShowAct = new QAction(QIcon(DataAccess::SkinPath() + "/log.png"), tr("Chat &Log"), this);
-        logShowAct->setCheckable(true);
-        logShowAct->setIconText(tr("Chat Log"));
-        logShowAct->setShortcut(tr("Ctrl+L"));
-        logShowAct->setToolTip(tr("Show/Hide Chat Log"));
-        connect(logShowAct, SIGNAL(triggered(bool)), SLOT(slotShowLog(bool)));
+        actShowLog = new QAction(QIcon(DataAccess::SkinPath() + "/log.png"), tr("Chat &Log"), this);
+        actShowLog->setCheckable(true);
+        actShowLog->setIconText(tr("Chat Log"));
+        actShowLog->setShortcut(tr("Ctrl+L"));
+        actShowLog->setToolTip(tr("Show/Hide Chat Log"));
+        connect(actShowLog, SIGNAL(triggered(bool)), SLOT(slotShowLog(bool)));
 
         // edit tool bar
-        textBoldAct = new QAction(QIcon(DataAccess::SkinPath() + "/text-bold.png"), tr("&Bold"), this);
-        textBoldAct->setCheckable(true);
-        textBoldAct->setIconText(tr("Bold"));
-        textBoldAct->setShortcut(tr("Ctrl+B"));
-        textBoldAct->setToolTip(tr("Setup Text Bold"));
-        connect(textBoldAct, SIGNAL(triggered(bool)), SLOT(slotTextBold(bool)));
+        actTextFont = new QAction(QIcon(DataAccess::SkinPath() + "/font.png"), tr("Fon&t"), this);
+        actTextFont->setIconText(tr("Font"));
+        actTextFont->setShortcut(tr("Ctrl+T"));
+        actTextFont->setToolTip(tr("Setup Text Font"));
+        connect(actTextFont, SIGNAL(triggered()), SLOT(slotTextFont()));
 
-        textItalicAct = new QAction(QIcon(DataAccess::SkinPath() + "/text-italic.png"), tr("&Italic"), this);
-        textItalicAct->setCheckable(true);
-        textItalicAct->setIconText(tr("Italic"));
-        textItalicAct->setShortcut(tr("Ctrl+I"));
-        textItalicAct->setToolTip(tr("Setup Text Italic"));
-        connect(textItalicAct, SIGNAL(triggered(bool)), SLOT(slotTextItalic(bool)));
+        actTextColor = new QAction(QIcon(DataAccess::SkinPath() + "/text-color.png"), tr("&Color"), this);
+        actTextColor->setIconText(tr("Color"));
+        actTextColor->setShortcut(tr("Ctrl+Alt+C"));
+        actTextColor->setToolTip(tr("Setup text color"));
+        connect(actTextColor, SIGNAL(triggered()), SLOT(slotTextColor()));
 
-        textColorAct = new QAction(QIcon(DataAccess::SkinPath() + "/text-color.png"), tr("&Color"), this);
-        textColorAct->setIconText(tr("Color"));
-        textColorAct->setShortcut(tr("Ctrl+Alt+C"));
-        textColorAct->setToolTip(tr("Setup text color"));
-        connect(textColorAct, SIGNAL(triggered()), SLOT(slotTextColor()));
+        actSendEmotion = new QAction(QIcon(DataAccess::SkinPath() + "/emotion.png"), tr("Send &Emotion"), this);
+        actSendEmotion->setIconText(tr("Send Emotion"));
+        actSendEmotion->setShortcut(tr("Ctrl+E"));
+        actSendEmotion->setToolTip(tr("Send a emotion to the other"));
+        connect(actSendEmotion, SIGNAL(triggered()), this, SLOT(slotSendEmotion()));
 
-        sendEmotionAct = new QAction(QIcon(DataAccess::SkinPath() + "/emotion.png"), tr("Send &Emotion"), this);
-        sendEmotionAct->setIconText(tr("Send Emotion"));
-        sendEmotionAct->setShortcut(tr("Ctrl+E"));
-        sendEmotionAct->setToolTip(tr("Send a emotion to the other"));
-        connect(sendEmotionAct, SIGNAL(triggered()), this, SLOT(slotSendEmotion()));
+        actSendPicture = new QAction(QIcon(DataAccess::SkinPath() + "/send-picture.png"), tr("Send P&icture"), this);
+        actSendPicture->setIconText(tr("Send Picture"));
+        actSendPicture->setShortcut(tr("Ctrl+P"));
+        actSendPicture->setToolTip(tr("Send a picture to the other"));
+        connect(actSendPicture, SIGNAL(triggered()), this, SLOT(slotSendPicture()));
 
-        sendPictureAct = new QAction(QIcon(DataAccess::SkinPath() + "/send-picture.png"), tr("Send P&icture"), this);
-        sendPictureAct->setIconText(tr("Send Picture"));
-        sendPictureAct->setShortcut(tr("Ctrl+P"));
-        sendPictureAct->setToolTip(tr("Send a picture to the other"));
-        connect(sendPictureAct, SIGNAL(triggered()), this, SLOT(slotSendPicture()));
+        actScreenShot = new QAction(QIcon(DataAccess::SkinPath() + "/capture.png"), tr("Capture Screen"), this);
+        actScreenShot->setIconText(tr("Capture Screen"));
+        actScreenShot->setToolTip(tr("Capture screen and insert to edit box"));
+        connect(actScreenShot, SIGNAL(triggered()), this, SLOT(slotCaptureScreen()));
 
-        sendFileAct = new QAction(QIcon(DataAccess::SkinPath() + "/send-files.png"), tr("Send &File"), this);
-        sendFileAct->setIconText(tr("Send File"));
-        sendFileAct->setShortcut(tr("Ctrl+F"));
-        sendFileAct->setToolTip(tr("Send some files to the other"));
-        connect(sendFileAct, SIGNAL(triggered()), SLOT(slotSendFile()));
+        actSendFile = new QAction(QIcon(DataAccess::SkinPath() + "/send-files.png"), tr("Send &File"), this);
+        actSendFile->setIconText(tr("Send File"));
+        actSendFile->setShortcut(tr("Ctrl+F"));
+        actSendFile->setToolTip(tr("Send some files to the other"));
+        connect(actSendFile, SIGNAL(triggered()), SLOT(slotSendFile()));
 
-        sendDirAct = new QAction(QIcon(DataAccess::SkinPath() + "/send-folder.png"), tr("Send &Directory"), this);
-        sendDirAct->setIconText(tr("Send Directory"));
-        sendDirAct->setShortcut(tr("Ctrl+D"));
-        sendDirAct->setToolTip(tr("Send a directory to the other"));
-        connect(sendDirAct, SIGNAL(triggered()), SLOT(slotSendDir()));
+        actSendDir = new QAction(QIcon(DataAccess::SkinPath() + "/send-folder.png"), tr("Send &Directory"), this);
+        actSendDir->setIconText(tr("Send Directory"));
+        actSendDir->setShortcut(tr("Ctrl+D"));
+        actSendDir->setToolTip(tr("Send a directory to the other"));
+        connect(actSendDir, SIGNAL(triggered()), SLOT(slotSendDir()));
 
         // layout
-        layoutSetViewAct = new QAction(QIcon(DataAccess::SkinPath() + "/layout.png"), tr("Layout"), this);
-        layoutSetViewAct->setShortcut(tr("Ctrl+Alt+X"));
-        connect(layoutSetViewAct, SIGNAL(triggered(bool)), this, SLOT(slotSetView(bool)));
+        actSetViewLayout = new QAction(QIcon(DataAccess::SkinPath() + "/layout.png"), tr("Layout"), this);
+        actSetViewLayout->setShortcut(tr("Ctrl+Alt+X"));
+        connect(actSetViewLayout, SIGNAL(triggered(bool)), this, SLOT(slotSetView(bool)));
 
-        layoutFullScreenAct = new QAction(QIcon(DataAccess::SkinPath() + "/view-fullscreen.png"), tr("Full Screen"), this);
-        layoutFullScreenAct->setShortcut(tr("Ctrl+Alt+Z"));
-        layoutFullScreenAct->setCheckable(true);
-        connect(layoutFullScreenAct, SIGNAL(triggered(bool)), SLOT(slotSetViewFullScreen(bool)));
+        actShowFullScreen = new QAction(QIcon(DataAccess::SkinPath() + "/view-fullscreen.png"), tr("Full Screen"), this);
+        actShowFullScreen->setShortcut(tr("Ctrl+Alt+Z"));
+        actShowFullScreen->setCheckable(true);
+        actShowFullScreen->setToolTip(tr("Set/Cancel full screen mode"));
+        connect(actShowFullScreen, SIGNAL(triggered(bool)), SLOT(slotSetViewFullScreen(bool)));
 
-        sendMsgAct = new QAction(tr("&Send"), this);
-        connect(sendMsgAct, SIGNAL(triggered()), SLOT(slotSend()));
-        closeAct = new QAction(tr("&Close"), this);
-        connect(closeAct, SIGNAL(triggered()), SLOT(close()));
+        actSendMsg = new QAction(tr("&Send"), this);
+        connect(actSendMsg, SIGNAL(triggered()), SLOT(slotSend()));
+        actClose = new QAction(tr("&Close"), this);
+        connect(actClose, SIGNAL(triggered()), SLOT(close()));
 
         QString fName = DataAccess::SkinPath() + "/copy-send-" + m_DataAccess.Language() + ".png";
         if (!QFile::exists(fName))
         {
         	fName = DataAccess::SkinPath() + "/copy-send.png";
         }
-        copySendAct = new QAction(QIcon(fName), tr("Copy Send"), this);
-        copySendAct->setCheckable(true);
-        copySendAct->setToolTip(tr("Add members you want to copy send"));
-        connect(copySendAct, SIGNAL(triggered(bool)), SLOT(slotCopySend(bool)));
+        actCopySend = new QAction(QIcon(fName), tr("Copy Send"), this);
+        actCopySend->setCheckable(true);
+        actCopySend->setToolTip(tr("Add members you want to copy send"));
+        connect(actCopySend, SIGNAL(triggered(bool)), SLOT(slotCopySend(bool)));
 
-        viewShareAct = new QAction(QIcon(DataAccess::SkinPath() + "/share.png"), tr("View Shared Items"), this);
-        connect(viewShareAct, SIGNAL(triggered(bool)), SLOT(slotViewShare()));
+        actViewShare = new QAction(QIcon(DataAccess::SkinPath() + "/share.png"), tr("View Shared Items"), this);
+        connect(actViewShare, SIGNAL(triggered(bool)), SLOT(slotViewShare()));
 }
 
 void
@@ -229,7 +228,7 @@ FormTalk::slotSetView(bool t)
         siz.clear();
         if (m_viewType % 3 == 0)
         {
-                siz << h/5 << h*3/5 << h/5;
+                siz << h/5+20 << h*3/5-20 << h/5;
                 leftVSplitter->setSizes(siz);
         }
         else if (m_viewType % 3 == 1)
@@ -241,7 +240,6 @@ FormTalk::slotSetView(bool t)
         {
                 siz << 0 << h*3/4 << h/4;
                 leftVSplitter->setSizes(siz);
-                //rightLayout->addWidget(fileTransWidget);
         }
         leftVSplitter->setCollapsible(1, false);
         leftVSplitter->setCollapsible(2, false);
@@ -290,7 +288,7 @@ FormTalk::setupMainWidget()
         logBrowser->setWindowTitle(tr("Chat Log") + m_userItem->IpAddress());
         connect(logBrowser, SIGNAL(anchorClicked(const QUrl&)), SLOT(slotBrowaserAnchorClicked(const QUrl&)));
         QVBoxLayout* logLayout = new QVBoxLayout(logWidget);
-        logLayout->setMargin(1);
+        logLayout->setMargin(0);
         logLayout->addWidget(new QLabel(tr("Chat Log")));
         logLayout->addWidget(logBrowser);
 
@@ -314,13 +312,13 @@ FormTalk::setupMainWidget()
         butHLayout->addStretch();
 
         QToolButton* layBut = new QToolButton;
-        layBut->setDefaultAction(layoutSetViewAct);
+        layBut->setDefaultAction(actSetViewLayout);
         butHLayout->addWidget(layBut);
         layBut = new QToolButton;
-        layBut->setDefaultAction(layoutFullScreenAct);
+        layBut->setDefaultAction(actShowFullScreen);
         butHLayout->addWidget(layBut);
         QToolButton *pbutHist = new QToolButton;
-        pbutHist->setDefaultAction(logShowAct);
+        pbutHist->setDefaultAction(actShowLog);
         butHLayout->addWidget(pbutHist);
 
         QWidget* broWidget = new QWidget;
@@ -345,32 +343,18 @@ FormTalk::setupMainWidget()
 void
 FormTalk::setupEditToolBar()
 {
-        fontComboBox = new QFontComboBox;
-        fontComboBox->setFixedWidth(110);
-        connect(fontComboBox, SIGNAL(currentFontChanged(const QFont&)), SLOT(slotTextFamilyChanged(const QFont&)));
-
-        fontSizeComboBox = new QComboBox;
-        QStringList slist;
-        slist << "8" << "9" << "10" << "11" << "12" << "14" << "16" << "18" << "20" << "22" << "24" << "26" << "28" << "36" << "48" << "72" << "96" << "128" << "255";
-        fontSizeComboBox->addItems(slist);
-        fontSizeComboBox->setCurrentIndex(6);
-        fontSizeComboBox->setFixedWidth(50);
-        connect(fontSizeComboBox, SIGNAL(currentIndexChanged(const QString&)), SLOT(slotTextSizeChanged(const QString&)));
-
         editToolBar->setIconSize(QSize(20, 20));
-        editToolBar->addWidget(fontComboBox);
-        editToolBar->addWidget(fontSizeComboBox);
 
-        editToolBar->addAction(textBoldAct);
-        editToolBar->addAction(textItalicAct);
-        editToolBar->addAction(textColorAct);
-        editToolBar->addAction(sendEmotionAct);
-        editToolBar->addAction(sendPictureAct);
-        editToolBar->addAction(sendFileAct);
-        editToolBar->addAction(sendDirAct);
-        editToolBar->addAction(viewShareAct);
-        editToolBar->addAction(copySendAct);
-        editToolBar->addAction(logShowAct);
+        editToolBar->addAction(actTextFont);
+        editToolBar->addAction(actTextColor);
+        editToolBar->addAction(actSendEmotion);
+        editToolBar->addAction(actSendPicture);
+        editToolBar->addAction(actScreenShot);
+        editToolBar->addAction(actSendFile);
+        editToolBar->addAction(actSendDir);
+        editToolBar->addAction(actViewShare);
+        editToolBar->addAction(actCopySend);
+        editToolBar->addAction(actShowLog);
 
         emotionView = m_DataAccess.emotionView;
 }
@@ -381,7 +365,30 @@ FormTalk::setupFileTransWidget()
         fileTransWidget = new ProtocolDataWidget(m_DataAccess, m_userItem);
         connect(fileTransWidget, SIGNAL(sigTips(const QString&)), SLOT(addTipsToTextBrowser(const QString&)));
 
-        leftVSplitter->insertWidget(0, fileTransWidget);
+        QVBoxLayout* vbutBox = new QVBoxLayout;
+        vbutBox->setAlignment(Qt::AlignCenter);
+        QToolButton* tBut;
+        tBut = new QToolButton;
+        tBut->setIcon(QIcon(DataAccess::SkinPath() + "/save-as.png"));
+        tBut->setText(tr("Save"));
+        tBut->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+        connect(tBut, SIGNAL(clicked()), fileTransWidget, SLOT(slotSave()));
+        vbutBox->addWidget(tBut);
+
+        tBut = new QToolButton;
+        tBut->setIcon(QIcon(DataAccess::SkinPath() + "/cancel.png"));
+        tBut->setText(tr("Cancel"));
+        tBut->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+        connect(tBut, SIGNAL(clicked()), fileTransWidget, SLOT(slotCancel()));
+        vbutBox->addWidget(tBut);
+        vbutBox->setMargin(0);
+
+        QFrame* w = new QFrame;
+        QHBoxLayout* h = new QHBoxLayout(w);
+        h->setMargin(0);
+        h->addWidget(fileTransWidget);
+        h->addLayout(vbutBox);
+        leftVSplitter->insertWidget(0, w);
 //         rightLayout->addWidget(fileTransWidget);
 //         fileTransWidget->setParent(rightWidget);
 
@@ -645,46 +652,29 @@ FormTalk::onRecv(Message_ptr m)
                 QString const& kName = QString::fromUtf8(pps->property_data(IMProto::FileKey));
                 QString const& fName = QString::fromUtf8(pps->property_data(IMProto::FileName));
 
-                QString timestamp = QDateTime::currentDateTime ().toString(Qt::ISODate);
-                Address addr;
-                if (From const* f = static_cast<From const*>(m->find(From::id)))
+                QString const& saveName = m_DataAccess.RecvImgPath() + "/" + fName;
+                QFile file(saveName);
+                if (file.exists())
                 {
-                        addr = f->address();
-                        textBrowser->append("<span style=\" font-size:12pt;color:#0000ff;\">"
-                                + QString("<b>") + m_userItem->LoginName() + "</b>("
-                                + timestamp.replace('T', ' ') + ")" + QString(tr(":"))
-                                + "</span>");
+                        uint qs = QTime::currentTime().toString(Qt::ISODate).remove(":").toUInt();//
+                        qsrand(qs);
+                        file.rename(m_DataAccess.RecvImgPath() + "/" +  QString::number(qrand()) + fName);
+                }
+                // recv image file
+                quint16 port = DataAccess::genTcpPort();
+                ProtocolDataTransfer* pdthr = 0;
+                pdthr = new ProtocolDataTransfer(0, saveName, siz, port);
+                connect(pdthr, SIGNAL(sigComplete()), this, SLOT(slotRecvPictureReady()));
+                pdthr->start();
+                Message_ptr nm(new Message);
+                PPictureRecv* ppr = new PPictureRecv(IMProto::PictureRecv);
+                ppr->add(IMProto::ListenPort, QString::number(port).toAscii().data(), false);
+                ppr->add(IMProto::FileKey, kName.toUtf8().data(), false);
+                ppr->update_size();
+                nm->add(Profile_ptr (ppr));
+                nm->add(Profile_ptr (new To(m_userItem->Addr())));
+                DataAccess::sendMsg(nm);
 
-                        QString const& saveName = m_DataAccess.RecvImgPath() + "/" + fName;
-                        QFile file(saveName);
-                        if (file.exists())
-                        {
-                                qsrand(QTime::currentTime().msec());
-                                file.rename(m_DataAccess.RecvImgPath() + "/" +  QString::number(qrand()) + fName);
-                        }
-                        // recv image file
-                        quint16 port = DataAccess::genTcpPort();
-                        ProtocolDataTransfer* pdthr = 0;
-                        pdthr = new ProtocolDataTransfer(0, saveName, siz, port);
-                        connect(pdthr, SIGNAL(sigComplete()), this, SLOT(slotRecvPictureReady()));
-                        pdthr->start();
-                        Message_ptr nm(new Message);
-                        PPictureRecv* ppr = new PPictureRecv(IMProto::PictureRecv);
-                        ppr->add(IMProto::ListenPort, QString::number(port).toAscii().data(), false);
-                        ppr->add(IMProto::FileKey, pps->property_data(IMProto::FileKey), false);
-                        ppr->update_size();
-                        nm->add(Profile_ptr (ppr));
-                        nm->add(Profile_ptr (new To(m_userItem->Addr())));
-                        DataAccess::sendMsg(nm);
-                }
-                else
-                {
-                        textBrowser->append("<span style=\" font-size:12pt;color:#008000;\">"
-                                + QString("<b>") + m_DataAccess.userItemCollection.local->LoginName() + "</b>("
-                                + timestamp.replace('T', ' ') + ")" + QString(tr(":"))
-                                + "</span>");
-                }
-                textBrowser->append(QString("<img src=\"") + m_DataAccess.RecvImgPath() + "/" + kName +"\" />");
                 return;
         }
         else if (PSharedList const* psla = static_cast<PSharedList const*>(m->find(IMProto::SharedListAck)))
@@ -730,8 +720,6 @@ FormTalk::onRecv(Message_ptr m)
                 if (!delItemWhenFinished)
                 {
                         dItem->setData(COL_NAME, TransStateRole, "CANCEL");
-                        dItem->setIcon(COL_REJECT, QIcon());
-                        dItem->setText(COL_REJECT, "");
                         dItem->setIcon(COL_STATE, QIcon(DataAccess::SkinPath() + "/warning.png"));
                         dItem->setText(COL_STATE, tr("Canceled"));
                 }
@@ -790,7 +778,7 @@ FormTalk::slotTextColor()
         {
                 return;
         }
-        QIcon ic = textColorAct->icon();
+        QIcon ic = actTextColor->icon();
         QPixmap pix = ic.pixmap(ic.actualSize(QSize(100, 100)));
         QSize s = pix.size();
         QPainter pter(&pix);
@@ -798,43 +786,25 @@ FormTalk::slotTextColor()
         pter.setPen(textEditColor);
         pter.setBrush(textEditColor);
         pter.drawRect(QRect(0, s.height()-3, s.width()-1, 3));
-        textColorAct->setIcon(pix);
+        actTextColor->setIcon(pix);
 
+        textEdit->insertHtml("<b></b>");
         QTextCharFormat fmt;
         fmt.setForeground(textEditColor);
         mergeFormatOnWordOrSelection(fmt);
 }
 
 void
-FormTalk::slotTextBold(bool chked)
+FormTalk::slotTextFont()
 {
-        QTextCharFormat fmt;
-        fmt.setFontWeight(chked ? QFont::Bold : QFont::Normal);
-        mergeFormatOnWordOrSelection(fmt);
-}
-
-void
-FormTalk::slotTextItalic(bool chked)
-{
-        QTextCharFormat fmt;
-        fmt.setFontItalic(chked);
-        mergeFormatOnWordOrSelection(fmt);
-}
-
-void
-FormTalk::slotTextFamilyChanged(const QFont& font)
-{
-        QTextCharFormat fmt;
-        fmt.setFontFamily(font.family());
-        mergeFormatOnWordOrSelection(fmt);
-}
-
-void
-FormTalk::slotTextSizeChanged(const QString& siz)
-{
-        QTextCharFormat fmt;
-        fmt.setFontPointSize(siz.toFloat());
-        mergeFormatOnWordOrSelection(fmt);
+        bool ok;
+        QFont font = QFontDialog::getFont(&ok, textEdit->currentCharFormat().font(), this, tr("Config Text Font"));
+        if (ok)
+        {
+                QTextCharFormat fmt;
+                fmt.setFont(font);
+                mergeFormatOnWordOrSelection(fmt);
+        }
 }
 
 void
@@ -845,10 +815,6 @@ FormTalk::slotSend()
         {
                 return;
         }
-        slotTextFamilyChanged(QFont(fontComboBox->currentText()));
-        slotTextSizeChanged(fontSizeComboBox->currentText());
-        slotTextBold(textBoldAct->isChecked());
-        slotTextItalic(textItalicAct->isChecked());
         QTextCharFormat fmt;
         fmt.setForeground(textEditColor);
         mergeFormatOnWordOrSelection(fmt);
@@ -862,7 +828,7 @@ FormTalk::slotSend()
                 return;
         }
         QList<UserItem*> toList;
-        if (copySendAct->isChecked())
+        if (actCopySend->isChecked())
         {
 	        toList = userSelectWidget->GetSelectedUserItems();
         }
@@ -870,6 +836,11 @@ FormTalk::slotSend()
         DataAccess::MultiSendMsg(m, toList);
         this->onRecv(m);
         textEdit->clear();
+        while (!m_imagesToSend.isEmpty())
+        {
+	        Message_ptr imgm = m_imagesToSend.dequeue();
+                DataAccess::MultiSendMsg(imgm, toList);
+        }
 }
 
 void
@@ -902,30 +873,43 @@ FormTalk::slotSendPicture()
         for (int i = 0; i < nameList.size(); i++)
         {
                 QString fName = nameList.at(i);
-
-                QFile file(fName);
-                if (!file.open(QIODevice::ReadOnly))
-                {
-                        QMessageBox::warning(this, tr("Error"),
-                                tr("Unable to read the file %1: %2")
-                                .arg(fName).arg(file.errorString()));
-                        continue;
-                }
-                file.close();
-                QFileInfo finfo(fName);
-                quint64 len = finfo.size();
-                Message_ptr m(new Message);
-                IMProto::PPictureSend* pps = new IMProto::PPictureSend(IMProto::PictureSend);
-                QString const& kName = m_userItem->insertDirPair(fName);
-                pps->add(IMProto::FileKey, kName.toUtf8().data(), false);
-                pps->add(IMProto::FileSize, QString::number(len).toUtf8().data(), false);
-                pps->add(IMProto::FileName, finfo.fileName().toUtf8().data(), false);
-                pps->update_size();
-                m->add(Profile_ptr (pps));
-                m->add(Profile_ptr (new To(m_userItem->Addr())));
-                DataAccess::sendMsg(m);
-                this->onRecv(m);
+                slotSendPicture(fName);
         }
+}
+
+void
+FormTalk::slotSendPicture(const QString& pathname)
+{
+        QFile file(pathname);
+        if (!file.open(QIODevice::ReadOnly))
+        {
+                QMessageBox::warning(this, tr("Error"),
+                        tr("Unable to read the file %1: %2")
+                        .arg(pathname).arg(file.errorString()));
+                return;
+        }
+        file.close();
+        QFileInfo finfo(pathname);
+        quint64 len = finfo.size();
+        Message_ptr m(new Message);
+        IMProto::PPictureSend* pps = new IMProto::PPictureSend(IMProto::PictureSend);
+        QString const& kName = m_userItem->insertSendingFile(pathname);
+        pps->add(IMProto::FileKey, kName.toUtf8().data(), false);
+        pps->add(IMProto::FileSize, QString::number(len).toUtf8().data(), false);
+        pps->add(IMProto::FileName, finfo.fileName().toUtf8().data(), false);
+        pps->update_size();
+        m->add(Profile_ptr (pps));
+        m->add(Profile_ptr (new To(m_userItem->Addr())));
+        m_imagesToSend.enqueue(m);
+        this->onRecv(m);
+        textEdit->insertHtml(QString("<img src=\"") + m_DataAccess.RecvImgPath() + "/" + finfo.fileName().toUtf8().data() +"\" />");
+}
+
+void
+FormTalk::slotCaptureScreen()
+{
+        ScreenShot* ss = new ScreenShot;
+        connect(ss, SIGNAL(sigCaptured(const QString&)), this, SLOT(slotSendPicture(const QString&)));
 }
 
 void
@@ -956,11 +940,11 @@ FormTalk::slotSendFile()
                 QFileInfo finfo(fName);
                 quint64 len = finfo.size();
 
-                quint16 sn = DataAccess::genTcpPort();
+                QString const& sn = QString::number(DataAccess::genTcpPort());
                 Message_ptr m(new Message);
                 IMProto::PFileSend* pfs = new IMProto::PFileSend(IMProto::FileSend);
-                QString const& kName = m_userItem->insertDirPair(fName);
-                pfs->add(IMProto::EventSn, QString::number(sn).toUtf8().data(), false);
+                QString const& kName = m_userItem->insertSendingFile(fName);
+                pfs->add(IMProto::EventSn, sn.toUtf8().data(), false);
                 pfs->add(IMProto::FileKey, kName.toUtf8().data(), false);
                 pfs->add(IMProto::FileSize, QString::number(len).toUtf8().data(), false);
                 pfs->add(IMProto::FileName, finfo.fileName().toUtf8().data(), false);
@@ -1003,11 +987,11 @@ FormTalk::slotSendDir()
         m_DataAccess.updateOpenDir(finfo.path());
 
         quint64 len = finfo.size();
-        quint16 sn = DataAccess::genTcpPort();
+        QString const& sn = QString::number(DataAccess::genTcpPort());
         Message_ptr m(new Message);
         IMProto::PDirSend* pds = new IMProto::PDirSend(IMProto::DirSend);
-        QString const& kName = m_userItem->insertDirPair(dName);
-        pds->add(IMProto::EventSn, QString::number(sn).toUtf8().data(), false);
+        QString const& kName = m_userItem->insertSendingFile(dName);
+        pds->add(IMProto::EventSn, sn.toUtf8().data(), false);
         pds->add(IMProto::FileKey, kName.toUtf8().data(), false);
         pds->add(IMProto::FileSize, QString::number(len).toUtf8().data(), false);
         pds->add(IMProto::FileName, finfo.fileName().toUtf8().data(), false);

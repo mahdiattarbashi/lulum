@@ -4,7 +4,7 @@
 
 TEMPLATE = app
 TARGET = lulu-messenger
-VERSION = 2.0.1
+VERSION = 2.1.0
 DEPENDPATH += .
 INCLUDEPATH += .
 
@@ -50,6 +50,7 @@ HEADERS += Application.h \
            Protocol.h \
            resource.h \
            RoomTalk.h \
+           ScreenShot.h \
            Server.h \
            ShareWidget.h \
            Trans.h \
@@ -68,6 +69,7 @@ SOURCES += Application.cpp \
            main.cpp \
            Protocol.cpp \
            RoomTalk.cpp \
+           ScreenShot.cpp \
            Server.cpp \
            ShareWidget.cpp \
            TransProtocolData.cpp \

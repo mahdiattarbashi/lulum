@@ -50,9 +50,7 @@
 #define COL_TYPE        2
 #define COL_SPEED       3
 #define COL_PERCENT     4
-#define COL_REJECT      5
-#define COL_ACCEPT      6
-#define COL_STATE       7
+#define COL_STATE       5
 
 class ProtocolDataTransfer : public Transfer
 {
@@ -317,8 +315,6 @@ ProtocolDataTransfer::slotComplete()
                 m_item->setText(COL_SPEED, speed);
                 m_item->setText(COL_SIZE, GetFormatedFileSize(bytesTransfered) + "/" + GetFormatedFileSize(totalBytes));
                 m_item->setText(COL_PERCENT, "100%");
-                m_item->setIcon(COL_REJECT, QIcon());
-                m_item->setText(COL_REJECT, "");
                 m_item->setIcon(COL_STATE, QIcon(DataAccess::SkinPath() + "/ok.png"));
                 m_item->setText(COL_STATE, tr("Finished"));
                 m_item->setData(COL_NAME, TransStateRole, "FINISH");
@@ -525,13 +521,13 @@ public:
         ProtocolDataWidget(DataAccess& dataAccess, UserItem* uitem, QWidget* parent = 0);
 
 public slots:
-        QTreeWidgetItem* addItem(const QString& fileInfo, quint64 sn, const QString& kName);
-        void slotAccept();
-        void slotReject();
-        void slotItemClicked(QTreeWidgetItem* item, int column);
+        QTreeWidgetItem* addItem(const QString& fileInfo, const QString& sn, const QString& kName);
+        void slotSave();
+        void slotCancel();
         void onRecv(Message_ptr m);
 
         void slotRemoveFinishedItem();
+        void slotRemoveCanceledItem();
         void slotRemoveErrorItem();
         void slotCancelAllItem();
 
@@ -546,6 +542,7 @@ protected:
 private:
         QMenu* menuContext;
         QAction* actRemoveFinishedItem;
+        QAction* actRemoveCanceledItem;
         QAction* actRemoveErrorItem;
         QAction* actCancelAllItem;
 
@@ -555,8 +552,8 @@ private:
         QTimer m_timer;
 
         DataAccess& m_DataAccess;
-        QHash<uint, QTreeWidgetItem*> m_SendItemMap;
-        QHash<uint, QTreeWidgetItem*> m_RecvItemMap;
+        QHash<QString, QTreeWidgetItem*> m_SendItemMap;
+        QHash<QString, QTreeWidgetItem*> m_RecvItemMap;
 };
 
 #endif // __TransProtocolData_h__

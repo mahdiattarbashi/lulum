@@ -94,32 +94,32 @@ public:
         ACE_INET_Addr Addr() const { return m_addr; }
         void Addr(ACE_INET_Addr val) { m_addr = val; m_ipAddress = QString::fromAscii(val.get_host_addr()); }
 
-        QHash<QString, QString>* DirMap() { return &m_dirMap; }
-        QString insertDirPair(const QString &dir)
+        QHash<QString, QString>* SendingFilesCollection() { return &m_sendingFilesCollection; }
+        QString insertSendingFile(const QString &dir)
         {
                 QFileInfo finfo(dir);
-                QString key = m_dirMap.key(dir, "");
+                QString key = m_sendingFilesCollection.key(dir, "");
                 if (key == "")
                 {
-                        m_dirMap.insert(finfo.fileName(), dir);
+                        m_sendingFilesCollection.insert(finfo.fileName(), dir);
                         key = finfo.fileName();
                 }
                 return key;
         }
 
-        void removeDirPairByValue(const QString &dir)
+        void removeSendingFileByValue(const QString &dir)
         {
                 QFileInfo finfo(dir);
-                QString key = m_dirMap.key(dir, "");
+                QString key = m_sendingFilesCollection.key(dir, "");
                 if (key != "")
                 {
-                        m_dirMap.remove(key);
+                        m_sendingFilesCollection.remove(key);
                 }
         }
 
-        void removeDirPairByKey(const QString &key)
+        void removeSendingByKey(const QString &key)
         {
-                m_dirMap.remove(key);
+                m_sendingFilesCollection.remove(key);
         }
 
 private:
@@ -138,7 +138,7 @@ private:
         QString m_protocolVersion;
 
         ACE_INET_Addr m_addr;
-        QHash<QString, QString> m_dirMap;
+        QHash<QString, QString> m_sendingFilesCollection;
 };
 
 #endif // __UserItem_h__
