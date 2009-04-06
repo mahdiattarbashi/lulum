@@ -63,13 +63,12 @@ public slots:
         void slotSend();
         void slotShowLog(bool);
         void slotShowUserInfo(const QString& ip);
-        void slotTextFamilyChanged(const QFont& font);
-        void slotTextSizeChanged(const QString& siz);
+        void slotTextFont();
         void slotTextColor();
-        void slotTextBold(bool chked);
-        void slotTextItalic(bool chked);
         void slotSendEmotion();
         void slotSendPicture();
+        void slotSendPicture(const QString& pathname);
+        void slotCaptureScreen();
         void slotSendFile();
         void slotSendDir();
         void slotCopySend(bool);
@@ -111,30 +110,28 @@ private:
         QWidget* rightWidget;
         QLabel* userLabel;
         QToolBar* editToolBar;
-        QFontComboBox* fontComboBox;
-        QComboBox* fontSizeComboBox;
         QColor textEditColor;
         ProtocolDataWidget* fileTransWidget;
         EmotionWidget* emotionView;
         UserSelectView* userSelectWidget;
         SharedWatchWidget* filesSharedWidget;
 
-        QAction* logShowAct;
-        QAction* textColorAct;
-        QAction* textBoldAct;
-        QAction* textItalicAct;
-        QAction* sendEmotionAct;
-        QAction* sendPictureAct;
-        QAction* sendFileAct;
-        QAction* sendDirAct;
+        QAction* actShowLog;
+        QAction* actTextColor;
+        QAction* actTextFont;
+        QAction* actSendEmotion;
+        QAction* actSendPicture;
+        QAction* actScreenShot;
+        QAction* actSendFile;
+        QAction* actSendDir;
 
-        QAction* layoutSetViewAct;
-        QAction* layoutFullScreenAct;
-        QAction* sendMsgAct;
-        QAction* closeAct;
+        QAction* actSetViewLayout;
+        QAction* actShowFullScreen;
+        QAction* actSendMsg;
+        QAction* actClose;
 
-        QAction* copySendAct;
-        QAction* viewShareAct;
+        QAction* actCopySend;
+        QAction* actViewShare;
 
         UserItem* m_userItem;
         DataAccess& m_DataAccess;
@@ -143,6 +140,7 @@ private:
 
         int m_viewType;
         QSize histSize;
+        QQueue<IMProto::Message_ptr> m_imagesToSend;
 };
 
 #endif // __FormTalk_h__

@@ -232,8 +232,6 @@ SharingWidget::slotUploadCancel()
                 if (!delItemWhenFinished)
                 {
                         dItem->setData(COL_NAME, TransStateRole, "CANCEL");
-                        dItem->setIcon(COL_REJECT, QIcon());
-                        dItem->setText(COL_REJECT, "");
                         dItem->setIcon(COL_STATE, QIcon(DataAccess::SkinPath() + "/warning.png"));
                         dItem->setText(COL_STATE, tr("Canceled"));
                 }
@@ -461,8 +459,6 @@ SharedWatchWidget::slotDownloadCancel()
                 if (!delItemWhenFinished)
                 {
                         dItem->setData(COL_NAME, TransStateRole, "CANCEL");
-                        dItem->setIcon(COL_REJECT, QIcon());
-                        dItem->setText(COL_REJECT, "");
                         dItem->setIcon(COL_STATE, QIcon(DataAccess::SkinPath() + "/warning.png"));
                         dItem->setText(COL_STATE, tr("Canceled"));
                 }

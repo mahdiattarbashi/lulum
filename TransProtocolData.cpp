@@ -616,23 +616,16 @@ ProtocolDataWidget::ProtocolDataWidget(DataAccess& dataAccess, UserItem* uitem, 
         headerItem->setText(COL_SIZE, tr("Size"));
         headerItem->setText(COL_TYPE, tr("Type"));
         headerItem->setText(COL_PERCENT, tr("Percent"));
-        headerItem->setText(COL_REJECT, tr("Reject"));
-        headerItem->setText(COL_ACCEPT, tr("Accept"));
         headerItem->setText(COL_SPEED, tr("Speed"));
         headerItem->setText(COL_STATE, tr("State"));
         this->setHeaderItem(headerItem);
         this->setEditTriggers(QAbstractItemView::NoEditTriggers);
-        this->setColumnWidth(COL_NAME, 120);   // File Name
+        this->setColumnWidth(COL_NAME, 180);    // File Name
         this->setColumnWidth(COL_SIZE, 110);    // Size
-        this->setColumnWidth(COL_TYPE, 35);    // Sign
-        this->setColumnWidth(COL_PERCENT, 50);    // Percent
-        this->setColumnWidth(COL_REJECT, 60);    // Reject
-        this->setColumnWidth(COL_ACCEPT, 60);    // Accept
+        this->setColumnWidth(COL_TYPE, 40);     // Sign
+        this->setColumnWidth(COL_PERCENT, 50);  // Percent
         this->setColumnWidth(COL_SPEED, 70);    // Speed
-        this->setColumnWidth(COL_STATE, 60);   // State
-
-        connect(this, SIGNAL(itemClicked(QTreeWidgetItem*, int)),
-                this, SLOT(slotItemClicked(QTreeWidgetItem*, int)));
+        this->setColumnWidth(COL_STATE, 60);    // State
 
         setWindowTitle(tr("ProtocolData Trans Watcher"));
 }
@@ -646,6 +639,9 @@ ProtocolDataWidget::createActions()
         actRemoveFinishedItem = new QAction(QIcon(DataAccess::SkinPath() + "/error.png"), tr("Remove &Finished Item"), this);
         connect(actRemoveFinishedItem, SIGNAL(triggered()), this, SLOT(slotRemoveFinishedItem()));
 
+        actRemoveCanceledItem = new QAction(QIcon(DataAccess::SkinPath() + "/cancel.png"), tr("Remove &Canceled Item"), this);
+        connect(actRemoveCanceledItem, SIGNAL(triggered()), this, SLOT(slotRemoveCanceledItem()));
+
         actRemoveErrorItem = new QAction(QIcon(DataAccess::SkinPath() + "/error.png"), tr("Remove &Error Item"), this);
         connect(actRemoveErrorItem, SIGNAL(triggered()), this, SLOT(slotRemoveErrorItem()));
 }
@@ -656,6 +652,7 @@ ProtocolDataWidget::createMenus()
         menuContext = new QMenu(tr("&Context"));
         menuContext->addAction(actCancelAllItem);
         menuContext->addAction(actRemoveFinishedItem);
+        menuContext->addAction(actRemoveCanceledItem);
         menuContext->addAction(actRemoveErrorItem);
         setContextMenuPolicy(Qt::DefaultContextMenu);
 }
@@ -668,8 +665,28 @@ ProtocolDataWidget::slotRemoveFinishedItem()
         {
                 QTreeWidgetItem* root = this->topLevelItem(i);
                 QString const& tsr = root->data(COL_NAME, TransStateRole).toString();
-                if (tsr == "FINISH"
-                        || tsr == "CANCEL")
+                if (tsr == "FINISH")
+                {
+                        itemList << this->topLevelItem(i);
+                }
+        }
+
+        while (itemList.size() > 0)
+        {
+                QTreeWidgetItem* item = this->takeTopLevelItem(indexOfTopLevelItem(itemList.takeAt(0)));
+                delete item;
+        }
+}
+
+void
+ProtocolDataWidget::slotRemoveCanceledItem()
+{
+        QList<QTreeWidgetItem*> itemList;
+        for (int i = 0; i < this->topLevelItemCount(); i++)
+        {
+                QTreeWidgetItem* root = this->topLevelItem(i);
+                QString const& tsr = root->data(COL_NAME, TransStateRole).toString();
+                if (tsr == "CANCEL")
                 {
                         itemList << this->topLevelItem(i);
                 }
@@ -709,145 +726,12 @@ ProtocolDataWidget::slotCancelAllItem()
         for (int i = 0; i < this->topLevelItemCount(); i++)
         {
                 QTreeWidgetItem* root = this->topLevelItem(i);
-                slotItemClicked(root, COL_REJECT);
+                this->setCurrentItem(root);
+                slotCancel();
         }
         slotRemoveFinishedItem();
-}
-
-void
-ProtocolDataWidget::slotItemClicked(QTreeWidgetItem* item, int column)
-{
-        QString const& kName = item->data(COL_NAME, FileKeyRole).toString();;
-        if (m_userItem->DirMap()->value(kName, "").isEmpty())
-        {
-                QMessageBox::critical(this, tr("Error"), tr("Unable to find in DirMap key: %1.").arg(kName));
-                return;
-        }
-        if (column == COL_REJECT) // cancel
-        {
-                if (item->text(COL_REJECT) != "")
-                {
-                        QString const& srr = item->data(COL_NAME, SendRecvRole).toString();
-                        QString const& tsr = item->data(COL_NAME, TransStateRole).toString();
-                        quint64 sn = item->data(COL_NAME, TransItemSNRole).toULongLong();
-                        if (srr == "S")
-                        {
-                                Message_ptr m(new Message);
-                                PDirFileSendCancel* pfsc = new PDirFileSendCancel(IMProto::DirFileSendCancel);
-                                pfsc->add(IMProto::EventSn, QString::number(sn).toUtf8().data());
-                                m->add(Profile_ptr (pfsc));
-                                m->add(Profile_ptr (new To(m_userItem->Addr())));
-                                DataAccess::sendMsg(m);
-
-                                QString tips = tr("You canceled sending %1: %2.").arg(item->text(COL_TYPE)).arg(item->text(COL_NAME));
-                                emit sigTips(tips);
-                                m_SendItemMap.remove(sn);
-                        } 
-                        else if (srr == "R")
-                        {
-                                Message_ptr m(new Message);
-                                PDirFileRecvCancel* pfrc = new PDirFileRecvCancel(IMProto::DirFileRecvCancel);
-                                pfrc->add(IMProto::EventSn, QString::number(sn).toUtf8().data());
-                                m->add(Profile_ptr (pfrc));
-                                m->add(Profile_ptr (new To(m_userItem->Addr())));
-                                DataAccess::sendMsg(m);
-
-                                QString tips = tr("You canceled receiving %1: %2.").arg(item->text(COL_TYPE)).arg(item->text(COL_NAME));
-                                emit sigTips(tips);
-                                item->setIcon(COL_ACCEPT, QIcon());
-                                item->setText(COL_ACCEPT, "");
-                                m_RecvItemMap.remove(sn);
-                        }
-                        if (tsr == "START")
-                        {
-                                ProtocolDataTransfer* t = (ProtocolDataTransfer*)item->data(COL_NAME, TransThreadRole).toULongLong();
-                                disconnect(&m_timer, SIGNAL(timeout()), t, SLOT(slotUpdate()));
-                                t->slotCancel();
-                        }
-                        if (!delItemWhenFinished)
-                        {
-	                        item->setData(COL_NAME, TransStateRole, "CANCEL");
-	                        item->setIcon(COL_REJECT, QIcon());
-	                        item->setText(COL_REJECT, "");
-	                        item->setIcon(COL_STATE, QIcon(DataAccess::SkinPath() + "/warning.png"));
-	                        item->setText(COL_STATE, tr("Canceled"));
-                        }
-                        else
-                        {
-                                this->takeTopLevelItem(this->indexOfTopLevelItem(item));
-                        }
-
-                }
-        }
-        else if (column == COL_ACCEPT) // accept
-        {
-                QString const& fType = item->data(COL_NAME, DirFileRole).toString();
-                if (item->text(COL_ACCEPT) != "")
-                {
-                        quint64 siz = item->data(0, FileSizeRole).toULongLong();
-                        quint16 port = DataAccess::genTcpPort();
-                        ProtocolDataTransfer* pdthr = 0;
-                        if (fType == "FILE")
-                        {
-                                QString const &saveName = QFileDialog::getSaveFileName(this, tr("Choose Save File Name"),
-                                        m_DataAccess.SaveDir() + "/" + item->text(COL_NAME));
-                                if (saveName.isEmpty())
-                                {
-                                        return;
-                                }
-                                QFileInfo finfo(saveName);
-                                m_DataAccess.updateSaveDir(finfo.absolutePath());
-
-                                pdthr = new ProtocolDataTransfer(item, saveName, siz, port);
-                                connect(&m_timer, SIGNAL(timeout()), pdthr, SLOT(slotUpdate()));
-                        }
-                        else if (fType == "DIR")
-                        {
-                                QString dir = QFileDialog::getExistingDirectory(this,
-                                        tr("Choose Save Directory Name"), m_DataAccess.SaveDir());
-                                if (dir.isEmpty())
-                                {
-                                        return;
-                                }
-                                m_DataAccess.updateSaveDir(dir);
-                                QString saveDir;
-                                if (dir.endsWith("/"))
-                                {
-                                        saveDir = dir + item->text(COL_NAME);
-                                }
-                                else
-                                {
-                                        saveDir = dir + "/" + item->text(COL_NAME);
-                                }
-                                QDir qDir;
-                                qDir.mkpath(saveDir);
-
-                                pdthr = new ProtocolDataTransfer(item, saveDir, port);
-                                connect(&m_timer, SIGNAL(timeout()), pdthr, SLOT(slotUpdate()));
-                        }
-                        if (!pdthr)
-                        {
-                                return;
-                        }
-                        m_timer.start(1000);
-                        pdthr->start();
-
-                        quint64 sn = m_RecvItemMap.key(item);
-                        Message_ptr m(new Message);
-                        PDirFileRecv* pfr = new PDirFileRecv(IMProto::DirFileRecv);
-                        pfr->add(IMProto::ListenPort, QString::number(port).toUtf8().data(), false);
-                        pfr->add(IMProto::EventSn, QString::number(sn).toUtf8().data(), false);
-                        pfr->add(IMProto::FileKey, kName.toUtf8().data(), false);
-                        pfr->update_size();
-                        m->add(Profile_ptr (pfr));
-                        m->add(Profile_ptr(new To(m_userItem->Addr())));
-                        DataAccess::sendMsg(m);
-
-                        item->setData(COL_NAME, TransThreadRole, (quint64)pdthr);
-                        item->setText(COL_ACCEPT, "");
-                        item->setIcon(COL_ACCEPT, QIcon());
-                }
-        }
+        slotRemoveCanceledItem();
+        slotRemoveErrorItem();
 }
 
 void
@@ -861,7 +745,7 @@ ProtocolDataWidget::onRecv(Message_ptr m)
 
         if (PFileSend const* pfs = static_cast<PFileSend const*>(m->find(IMProto::FileSend)))
         {
-                quint64 sn = QString::fromUtf8(pfs->property_data(IMProto::EventSn)).toULongLong();
+                QString const& sn = QString::fromUtf8(pfs->property_data(IMProto::EventSn));
                 QString const& kName = QString::fromUtf8(pfs->property_data(IMProto::FileKey));
                 QString const& fName = QString::fromUtf8(pfs->property_data(IMProto::FileName));
                 quint64 siz = QString::fromUtf8(pfs->property_data(IMProto::FileSize)).toULongLong();
@@ -877,8 +761,6 @@ ProtocolDataWidget::onRecv(Message_ptr m)
                 root->setText(COL_TYPE, tr("File"));
                 root->setText(COL_STATE, tr("waiting to receive"));
                 root->setText(COL_PERCENT, "0%");
-                root->setText(COL_REJECT, tr("Cancel"));
-                root->setText(COL_ACCEPT, tr("Save"));
                 root->setData(COL_NAME, FileKeyRole, kName);
                 root->setData(COL_NAME, FileSizeRole, siz);
                 root->setData(COL_NAME, DirFileRole, "FILE");
@@ -886,8 +768,6 @@ ProtocolDataWidget::onRecv(Message_ptr m)
                 root->setData(COL_NAME, TransStateRole, "WAIT");
                 root->setData(COL_NAME, TransItemSNRole, sn);
                 root->setIcon(COL_NAME, QIcon(DataAccess::SkinPath() + "/download-file.png"));
-                root->setIcon(COL_REJECT, QIcon(DataAccess::SkinPath() + "/cancel.png"));
-                root->setIcon(COL_ACCEPT, QIcon(DataAccess::SkinPath() + "/save-as.png"));
                 root->setIcon(COL_STATE, QIcon(DataAccess::SkinPath() + "/clock.png"));
                 emit sigTips(tr("The other request to send %1:%2. Please switch to file transferring window to process.")
                         .arg(tr("File"))
@@ -895,7 +775,7 @@ ProtocolDataWidget::onRecv(Message_ptr m)
         }
         else if (PDirFileRecv const* pfr = static_cast<PDirFileRecv const*>(m->find(IMProto::DirFileRecv)))
         {
-                quint64 sn = QString::fromUtf8(pfr->property_data(IMProto::EventSn)).toULongLong();
+                QString const& sn = QString::fromUtf8(pfr->property_data(IMProto::EventSn));
                 QString const& kName = QString::fromUtf8(pfr->property_data(IMProto::FileKey));
                 u16 port = QString::fromUtf8(pfr->property_data(IMProto::ListenPort)).toUShort();
 
@@ -905,10 +785,10 @@ ProtocolDataWidget::onRecv(Message_ptr m)
                         //QMessageBox::critical(this, tr("Error"), tr("Unable to find item in file SendItemMap. key: %1.").arg(keys[2]));
                         return;
                 }
-                QString const& pfName = m_userItem->DirMap()->value(kName);
+                QString const& pfName = m_userItem->SendingFilesCollection()->value(kName);
                 if (pfName.isEmpty())
                 {
-                        //QMessageBox::critical(this, tr("Error"), tr("Unable to find in DirMap key: %1.").arg(keys[2]));
+                        //QMessageBox::critical(this, tr("Error"), tr("Unable to find in SendingFilesCollection key: %1.").arg(keys[2]));
                         return;
                 }
                 QFileInfo finfo(pfName);
@@ -941,7 +821,7 @@ ProtocolDataWidget::onRecv(Message_ptr m)
         } 
         else if (ProfileWithProperties const* pds = static_cast<ProfileWithProperties const*>(m->find(IMProto::DirSend)))
         {
-                quint64 sn = QString::fromUtf8(pds->property_data(IMProto::EventSn)).toULongLong();
+                QString const& sn = QString::fromUtf8(pds->property_data(IMProto::EventSn));
                 QString const& kName = QString::fromUtf8(pds->property_data(IMProto::FileKey));
                 QString const& dName = QString::fromUtf8(pds->property_data(IMProto::FileName));
                 quint64 siz = QString::fromUtf8(pds->property_data(IMProto::FileSize)).toULongLong();
@@ -957,8 +837,6 @@ ProtocolDataWidget::onRecv(Message_ptr m)
                 root->setText(COL_TYPE, tr("Dir"));
                 root->setText(COL_STATE, tr("waiting to receive"));
                 root->setText(COL_PERCENT, "0%");
-                root->setText(COL_REJECT, tr("Cancel"));
-                root->setText(COL_ACCEPT, tr("Save"));
                 root->setData(COL_NAME, FileKeyRole, kName);
                 root->setData(COL_NAME, FileSizeRole, siz);
                 root->setData(COL_NAME, DirFileRole, "DIR");
@@ -966,8 +844,6 @@ ProtocolDataWidget::onRecv(Message_ptr m)
                 root->setData(COL_NAME, TransStateRole, "WAIT");
                 root->setData(COL_NAME, TransItemSNRole, sn);
                 root->setIcon(COL_NAME, QIcon(DataAccess::SkinPath() + "/download-folder.png"));
-                root->setIcon(COL_REJECT, QIcon(DataAccess::SkinPath() + "/cancel.png"));
-                root->setIcon(COL_ACCEPT, QIcon(DataAccess::SkinPath() + "/save-as.png"));
                 root->setIcon(COL_STATE, QIcon(DataAccess::SkinPath() + "/clock.png"));
                 emit sigTips(tr("The other request to send %1:%2. Please switch to file transferring window to process.")
                         .arg(tr("Dir"))
@@ -975,7 +851,7 @@ ProtocolDataWidget::onRecv(Message_ptr m)
         } 
         else if (PDirFileSendCancel const* pfsc = static_cast<PDirFileSendCancel const*>(m->find(IMProto::DirFileSendCancel)))
         {
-                quint64 sn = QString::fromUtf8(pfsc->property_data(IMProto::EventSn)).toULongLong();
+                QString const& sn = QString::fromUtf8(pfsc->property_data(IMProto::EventSn));
                 QTreeWidgetItem* item = m_RecvItemMap.value(sn);
                 if (!item)
                 {
@@ -997,10 +873,6 @@ ProtocolDataWidget::onRecv(Message_ptr m)
                 if (!delItemWhenFinished)
                 {
                         item->setData(COL_NAME, TransStateRole, "CANCEL");
-                        item->setIcon(COL_REJECT, QIcon());
-                        item->setText(COL_REJECT, "");
-                        item->setIcon(COL_ACCEPT, QIcon());
-                        item->setText(COL_ACCEPT, "");
                         item->setIcon(COL_STATE, QIcon(DataAccess::SkinPath() + "/warning.png"));
                         item->setText(COL_STATE, tr("Canceled"));
                 }
@@ -1011,7 +883,7 @@ ProtocolDataWidget::onRecv(Message_ptr m)
         } 
         else if (ProfileWithProperties const* pfrc = static_cast<ProfileWithProperties const*>(m->find(IMProto::DirFileRecvCancel)))
         {
-                quint64 sn = QString::fromUtf8(pfrc->property_data(IMProto::EventSn)).toULongLong();
+                QString const& sn = QString::fromUtf8(pfrc->property_data(IMProto::EventSn));
                 QTreeWidgetItem* item = m_SendItemMap.value(sn, 0);
                 if (!item)
                 {
@@ -1032,8 +904,6 @@ ProtocolDataWidget::onRecv(Message_ptr m)
                 if (!delItemWhenFinished)
                 {
                         item->setData(COL_NAME, TransStateRole, "CANCEL");
-                        item->setIcon(COL_REJECT, QIcon());
-                        item->setText(COL_REJECT, "");
                         item->setIcon(COL_STATE, QIcon(DataAccess::SkinPath() + "/warning.png"));
                         item->setText(COL_STATE, tr("Canceled"));
                 }
@@ -1041,11 +911,11 @@ ProtocolDataWidget::onRecv(Message_ptr m)
                 {
                         this->takeTopLevelItem(this->indexOfTopLevelItem(item));
                 }
-        } 
+        }
 }
 
 QTreeWidgetItem*
-ProtocolDataWidget::addItem(const QString& fileInfo, quint64 sn, const QString& kName)
+ProtocolDataWidget::addItem(const QString& fileInfo, const QString& sn, const QString& kName)
 {
         QStringList keys = ParseFileInfoString(fileInfo);
         quint64 siz = keys[1].toULongLong();
@@ -1064,7 +934,6 @@ ProtocolDataWidget::addItem(const QString& fileInfo, quint64 sn, const QString& 
         root->setText(COL_TYPE, (keys[0] == "DIR")?tr("Dir"):tr("File"));
         root->setText(COL_STATE, state);
         root->setText(COL_PERCENT, "0%");
-        root->setText(COL_REJECT, tr("Cancel"));
         root->setData(COL_NAME, FileKeyRole, kName);
         root->setData(COL_NAME, FileSizeRole, siz);
         root->setData(COL_NAME, DirFileRole, keys[0]);
@@ -1079,18 +948,164 @@ ProtocolDataWidget::addItem(const QString& fileInfo, quint64 sn, const QString& 
         {
                 root->setIcon(COL_NAME, QIcon(DataAccess::SkinPath() + "/upload-file.png"));
         }
-        root->setIcon(COL_REJECT, QIcon(DataAccess::SkinPath() + "/cancel.png"));
         root->setIcon(COL_STATE, QIcon(DataAccess::SkinPath() + "/clock.png"));
 
         return root;
 }
 
 void
-ProtocolDataWidget::slotAccept()
+ProtocolDataWidget::slotSave()
 {
+        QTreeWidgetItem* item = this->currentItem();
+        if (!item)
+        {
+                QMessageBox::information(this, tr("Tips"), tr("Please choose the item that you want to operate."));
+                return;
+        }
+        QString const& kName = item->data(COL_NAME, FileKeyRole).toString();
+
+        if (m_userItem->SendingFilesCollection()->value(kName, "").isEmpty())
+        {
+                QMessageBox::critical(this, tr("Error"), tr("Unable to find  key: %1 in ReceivingFilesCollection.").arg(kName));
+                return;
+        }
+
+        QString const& fType = item->data(COL_NAME, DirFileRole).toString();
+        QString const& srr = item->data(COL_NAME, SendRecvRole).toString();
+        QString const& state = item->data(COL_NAME, TransStateRole).toString();
+        if (srr == "S")
+        {
+                QMessageBox::information(this, tr("Tips"), tr("You can't save a send item."));
+                return;
+        }
+        if (state == "WAIT")
+        {
+                quint64 siz = item->data(0, FileSizeRole).toULongLong();
+                quint16 port = DataAccess::genTcpPort();
+                ProtocolDataTransfer* pdthr = 0;
+                if (fType == "FILE")
+                {
+                        QString const &saveName = QFileDialog::getSaveFileName(this, tr("Choose Save File Name"),
+                                m_DataAccess.SaveDir() + "/" + item->text(COL_NAME));
+                        if (saveName.isEmpty())
+                        {
+                                return;
+                        }
+                        QFileInfo finfo(saveName);
+                        m_DataAccess.updateSaveDir(finfo.absolutePath());
+
+                        pdthr = new ProtocolDataTransfer(item, saveName, siz, port);
+                        connect(&m_timer, SIGNAL(timeout()), pdthr, SLOT(slotUpdate()));
+                }
+                else if (fType == "DIR")
+                {
+                        QString dir = QFileDialog::getExistingDirectory(this,
+                                tr("Choose Save Directory Name"), m_DataAccess.SaveDir());
+                        if (dir.isEmpty())
+                        {
+                                return;
+                        }
+                        m_DataAccess.updateSaveDir(dir);
+                        QString saveDir;
+                        if (dir.endsWith("/"))
+                        {
+                                saveDir = dir + item->text(COL_NAME);
+                        }
+                        else
+                        {
+                                saveDir = dir + "/" + item->text(COL_NAME);
+                        }
+                        QDir qDir;
+                        qDir.mkpath(saveDir);
+
+                        pdthr = new ProtocolDataTransfer(item, saveDir, port);
+                        connect(&m_timer, SIGNAL(timeout()), pdthr, SLOT(slotUpdate()));
+                }
+                if (!pdthr)
+                {
+                        return;
+                }
+                m_timer.start(1000);
+                pdthr->start();
+
+                QString const& sn = m_RecvItemMap.key(item);
+                Message_ptr m(new Message);
+                PDirFileRecv* pfr = new PDirFileRecv(IMProto::DirFileRecv);
+                pfr->add(IMProto::ListenPort, QString::number(port).toUtf8().data(), false);
+                pfr->add(IMProto::EventSn, sn.toUtf8().data(), false);
+                pfr->add(IMProto::FileKey, kName.toUtf8().data(), false);
+                pfr->update_size();
+                m->add(Profile_ptr (pfr));
+                m->add(Profile_ptr(new To(m_userItem->Addr())));
+                DataAccess::sendMsg(m);
+
+                item->setData(COL_NAME, TransThreadRole, (quint64)pdthr);
+        }
 }
 
 void
-ProtocolDataWidget::slotReject()
+ProtocolDataWidget::slotCancel()
 {
+        QTreeWidgetItem* item = this->currentItem();
+        if (!item)
+        {
+                QMessageBox::information(this, tr("Tips"), tr("Please choose the item that you want to operate."));
+                return;
+        }
+        QString const& kName = item->data(COL_NAME, FileKeyRole).toString();
+
+        if (m_userItem->SendingFilesCollection()->value(kName, "").isEmpty())
+        {
+                QMessageBox::critical(this, tr("Error"), tr("Unable to find  key: %1 in SendingFilesCollection.").arg(kName));
+                return;
+        }
+
+        QString const& tsr = item->data(COL_NAME, TransStateRole).toString();
+        if (tsr == "START" || tsr == "WAIT")
+        {
+                QString const& srr = item->data(COL_NAME, SendRecvRole).toString();
+                QString const& sn = item->data(COL_NAME, TransItemSNRole).toString();
+                if (srr == "S")
+                {
+                        Message_ptr m(new Message);
+                        PDirFileSendCancel* pfsc = new PDirFileSendCancel(IMProto::DirFileSendCancel);
+                        pfsc->add(IMProto::EventSn, sn.toUtf8().data());
+                        m->add(Profile_ptr (pfsc));
+                        m->add(Profile_ptr (new To(m_userItem->Addr())));
+                        DataAccess::sendMsg(m);
+
+                        QString tips = tr("You canceled sending %1: %2.").arg(item->text(COL_TYPE)).arg(item->text(COL_NAME));
+                        emit sigTips(tips);
+                        m_SendItemMap.remove(sn);
+                } 
+                else if (srr == "R")
+                {
+                        Message_ptr m(new Message);
+                        PDirFileRecvCancel* pfrc = new PDirFileRecvCancel(IMProto::DirFileRecvCancel);
+                        pfrc->add(IMProto::EventSn, sn.toUtf8().data());
+                        m->add(Profile_ptr (pfrc));
+                        m->add(Profile_ptr (new To(m_userItem->Addr())));
+                        DataAccess::sendMsg(m);
+
+                        QString tips = tr("You canceled receiving %1: %2.").arg(item->text(COL_TYPE)).arg(item->text(COL_NAME));
+                        emit sigTips(tips);
+                        m_RecvItemMap.remove(sn);
+                }
+                if (tsr == "START")
+                {
+                        ProtocolDataTransfer* t = (ProtocolDataTransfer*)item->data(COL_NAME, TransThreadRole).toULongLong();
+                        disconnect(&m_timer, SIGNAL(timeout()), t, SLOT(slotUpdate()));
+                        t->slotCancel();
+                }
+                if (!delItemWhenFinished)
+                {
+                        item->setData(COL_NAME, TransStateRole, "CANCEL");
+                        item->setIcon(COL_STATE, QIcon(DataAccess::SkinPath() + "/warning.png"));
+                        item->setText(COL_STATE, tr("Canceled"));
+                }
+                else
+                {
+                        this->takeTopLevelItem(this->indexOfTopLevelItem(item));
+                }
+        }
 }

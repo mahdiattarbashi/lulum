@@ -376,14 +376,17 @@ FormMain::onRecv(Message_ptr m)
                         return;
                 }
                 QString const& kName = QString::fromUtf8(ppr->property_data(IMProto::FileKey));
-                u16 port = QString::fromUtf8(ppr->property_data(IMProto::ListenPort)).toUShort();
+                u16 port = QString::fromAscii(ppr->property_data(IMProto::ListenPort)).toUShort();
 
-                QString const& fName = uItem->DirMap()->value(kName);
-                ProtocolDataTransfer* pdthr = 0;
-                pdthr = new ProtocolDataTransfer(0, fName, 0,
-                        port, uItem->IpAddress(),
-                        ProtocolDataTransfer::DoSendFile);
-                pdthr->start();
+                QString const& fName = uItem->SendingFilesCollection()->value(kName);
+                if (!fName.isEmpty())
+                {
+                        ProtocolDataTransfer* pdthr = 0;
+                        pdthr = new ProtocolDataTransfer(0, fName, 0,
+                                port, uItem->IpAddress(),
+                                ProtocolDataTransfer::DoSendFile);
+                        pdthr->start();
+                }
                 return;
         }
         else if (m->find(IMProto::SharedList))
@@ -424,7 +427,7 @@ FormMain::onRecv(Message_ptr m)
                 QString const& pfName = keys[2];
                 if (pfName.isEmpty())
                 {
-                        //QMessageBox::critical(this, tr("Error"), tr("Unable to find in DirMap key: %1.").arg(keys[2]));
+                        //QMessageBox::critical(this, tr("Error"), tr("Unable to find in SendingFilesCollection key: %1.").arg(keys[2]));
                         return;
                 }
                 QFileInfo finfo(pfName);
@@ -482,8 +485,6 @@ FormMain::onRecv(Message_ptr m)
                 if (!delItemWhenFinished)
                 {
                         dItem->setData(COL_NAME, TransStateRole, "CANCEL");
-                        dItem->setIcon(COL_REJECT, QIcon());
-                        dItem->setText(COL_REJECT, "");
                         dItem->setIcon(COL_STATE, QIcon(DataAccess::SkinPath() + "/warning.png"));
                         dItem->setText(COL_STATE, tr("Canceled"));
                 }
@@ -769,7 +770,7 @@ FormMain::slotMenuLanguageTriggered(QAction* act)
 {
         if (act == actINetCheckUpdate)
         {
-                if (QDesktopServices::openUrl(QUrl("http://www.wu266.com")))
+                if (QDesktopServices::openUrl(QUrl("http://www.wu266.com/downloads.html")))
                 {
 	                return;
                 }

@@ -49,12 +49,10 @@
 #define COL_TYPE        2
 #define COL_SPEED       3
 #define COL_PERCENT     4
-#define COL_REJECT      5
-#define COL_ACCEPT      6
-#define COL_STATE       7
+#define COL_STATE       5
 
 #define COL_LOCAL       3
-#define COL_TARGET      8
+#define COL_TARGET      6
 
 class FilesView : public QTreeWidget
 {
@@ -113,19 +111,12 @@ public:
                         connect(this, SIGNAL(itemDoubleClicked(QTreeWidgetItem*, int)), SLOT(slotItemDBClicked(QTreeWidgetItem*, int)));
 
                         headerItem->setText(COL_PERCENT, tr("Percent"));
-                        headerItem->setText(COL_REJECT, tr("Reject"));
-                        headerItem->setText(COL_ACCEPT, tr("Accept"));
                         headerItem->setText(COL_SPEED, tr("Speed"));
                         headerItem->setText(COL_STATE, tr("State"));
 
                         this->setColumnWidth(COL_PERCENT, 50);    // Percent
-	                this->setColumnWidth(COL_REJECT, 60);    // Reject
-	                this->setColumnWidth(COL_ACCEPT, 60);    // Accept
 	                this->setColumnWidth(COL_SPEED, 70);    // Speed
                         this->setColumnWidth(COL_STATE, 90);   // State
-	
-	                this->setColumnHidden(COL_REJECT, true);
-	                this->setColumnHidden(COL_ACCEPT, true);
                 }
                 if (typ == ViewUpload)
                 {

@@ -1,4 +1,4 @@
-/*  filename: Application.cpp    2008/12/26  */
+/*  filename: ScreenShot.cpp    2009/4/6 10:42  */
 /*************************************************************************
     LuLu Messenger: A LAN Instant Messenger For Chatting and File Exchanging.
     Copyright (C) 2008,2009  Wu Weisheng <wwssir@gmail.com>
@@ -38,38 +38,5 @@
 // ËµÃ÷£º    
 // ÐÞ¸Ä£º    
 
-#include "Application.h"
-#include "FormMain.h"
-#include "DataAccess.h"
+#include "ScreenShot.h"
 
-QString PROGRAM_NAME;
-QString PROGRAM_VER = "2.1.0";
-QString COMPUTER_OS;
-QString COMPUTER_UserName;
-QString COMPUTER_UserDomain;
-
-
-Application::Application(int &argc, char **argv)
-: QApplication(argc, argv)
-{
-        QString locale = QLocale::system().name();
-        m_DataAccess = new DataAccess();
-
-        //QTranslator* translator = new QTranslator;
-        //translator->load(":/config/" + QString("IPM_") + locale + ".qm");
-        //installTranslator(translator);
-        //translator = new QTranslator;
-        //translator->load(":/config/" + QString("qt_") + locale + ".qm");
-        //installTranslator(translator);
-
-        mainWindow = new FormMain(*m_DataAccess);
-        mainWindow->show();
-
-        setStyleSheet(m_DataAccess->readSSTFile());
-}
-
-Application::~Application(void)
-{
-        delete mainWindow;
-        delete m_DataAccess;
-}
